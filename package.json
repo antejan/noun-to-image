@@ -1,0 +1,28 @@
+{
+  "name": "mtm-noun",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app.js",
+    "deploy": "now --public && now alias"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "^3.4.3",
+    "koa": "^1.2.1",
+    "koa-compress": "^1.0.0",
+    "koa-router": "^5.4.0",
+    "koa-static": "^2.0.0",
+    "lodash": "^4.15.0",
+    "moment": "^2.14.1",
+    "oauth": "^0.9.15",
+    "pm2": "^2.4.4",
+    "zlib": "^1.0.5"
+  },
+  "now": {
+    "alias": "mtm-noun"
+  }
+}

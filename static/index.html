@@ -1,0 +1,183 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf8">
+  <title>noun test</title>
+  <meta name="viewport" content="width=1024, user-scalable=no">
+  <link rel="stylesheet" type='text/css' href="style.css">
+</head>
+<body>
+
+
+<div class="icons">
+  <div class="icons__main">
+    <div class="icons__search">
+      <label class="icons__public">
+        <input type="checkbox" name="limit_to_public_domain"> Public domain
+      </label>
+      <input type="text" class="icons__input" placeholder="Search icons...">
+    </div>
+    <div class="icons__result">
+    </div>
+  </div>
+  <div class="icons__side">
+    <canvas class="icons__canvas" id="canvas" width="300" height="250"></canvas>
+
+    <div class="colors colors--color"></div>
+    <div class="colors colors--bg"></div>
+
+    <a href="" download="image.png" class="button icons__download">Download image</a>
+
+  </div>
+
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.15.0/lodash.min.js"></script>
+
+<script>
+$(function () {
+
+  var $results = $('.icons__result');
+  var $input = $('.icons__input');
+  var cache = [];
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  var state = {
+    bg: "#fff",
+    color: "#000",
+    icon: null,
+    public: false
+  };
+  var colors = [
+    '#fff',
+    '#000',
+    '#f05a50',
+    '#ff783c',
+    '#e6b400',
+    '#beaa6e',
+    '#77b478',
+    '#79b446',
+    '#5a8cb4',
+    '#50a0c8',
+    '#a08cb4',
+    '#5a78c8',
+    '#505a5a',
+    '#8c8c96',
+    '#dcdcdc'];
+
+
+  $('.icons__public input').on('change', function(){
+    state.public = $(this).is(':checked');
+    $input.trigger('input');
+  });
+
+  colors.forEach(function(color) {
+    $('.colors').append('<div class="color" data-color="'+color+'" style="background-color:'+color+'"></div>');
+  });
+
+  function colorsRefresh() {
+    $('.colors--color .color').removeClass('color--current');
+    $('.colors--color .color').filter("[data-color=\""+state.color+"\"]").addClass('color--current');
+    $('.colors--bg .color').removeClass('color--current');
+    $('.colors--bg .color').filter("[data-color=\""+state.bg+"\"]").addClass('color--current');
+  }
+
+  $('.colors--color').on('click', '.color', function(e){
+    state.color = $(e.target).data('color');
+    colorsRefresh();
+    drawImage();
+  });
+
+  $('.colors--bg').on('click', '.color', function(e){
+    state.bg = $(e.target).data('color');
+    colorsRefresh();
+    drawImage();
+  });
+
+  colorsRefresh();
+
+  // $('.icons__download').click(function(){
+  //   try {
+  //     var img = canvas.toDataURL("image/png");
+  //     // console.log(img)
+  //     // window.open(img);
+  //
+  //     window.location.href = img;
+  //
+  //   } catch(e) {
+  //     console.log(e);
+  //   }
+  // });
+
+  function clearResults() {
+    $results.empty();
+  }
+
+  function render404() {
+    $results.html('Nothing found :(')
+  }
+
+  function renderIcons(res) {
+    res = JSON.parse(res);
+    $results.empty();
+    res.icons.forEach(function(icon) {
+      var $icon = $('<div class="icons__item" data-id="'+icon.id+'" style="background-image:url(' + icon.preview_url_42 + ');"></div>');
+      $results.append($icon);
+    });
+    cache = res.icons;
+  }
+
+  function searchIcons() {
+    var term = $input.val().trim();
+    if (term) {
+      var params = state.public ? '?limit_to_public_domain=1' : '';
+      $.get('/icons/' + encodeURIComponent(term) + params)
+        .then(renderIcons)
+        .fail(render404)
+    } else {
+      clearResults();
+    }
+  }
+
+  var debouncedSearchIcons = _.debounce(searchIcons, 250);
+
+  $('.icons__input').on('input', debouncedSearchIcons);
+
+
+  function drawImage() {
+    $('.icons__side').css('opacity', 1);
+
+    var image = new Image(200, 200);
+    image.crossOrigin = "Anonymous";
+    image.setAttribute('crossOrigin', 'Anonymous');
+    image.onload = drawImageActualSize;
+    image.src = state.icon.preview_url;
+
+    function drawImageActualSize() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = state.color;
+      ctx.drawImage(this, 50, 25);
+      ctx.globalCompositeOperation = 'source-in';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation="destination-atop";
+      ctx.fillStyle = state.bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      $('.icons__download').attr('download', state.icon.term + '.png');
+      $('.icons__download').attr('href', canvas.toDataURL("image/png"));
+    }
+  }
+
+  $results.on('click', '.icons__item', function(e){
+    state.icon = _.find(cache, {id: String($(e.target).data('id'))});
+    drawImage()
+  })
+
+});
+</script>
+
+</body>
+</html>
